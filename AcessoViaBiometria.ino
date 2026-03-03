@@ -16,6 +16,8 @@ Adafruit_Fingerprint finger = Adafruit_Fingerprint(&mySerial);
 int ledVerde = 4;
 bool modoCadastroBiometria = false;
 
+bool sensorOcupado = false;
+
 MQTTClient clientMQTT(1280);
 WiFiClientSecure wifiClient;
 
@@ -49,11 +51,11 @@ void callbackMessageReceived(String &topic, String &payload) {
 
   //solicitação de cadastro de biometria
   if (String(topic) == "controledeacesso26/biometria/cadastro/controle") {      
-    if (payloadJson["ColetarDados"] == "true"){ //payload recebido informa que os dados podem ser coletados e posteriormente enviados
+    if (payloadJson["ColetarDados"] == true){ //payload recebido informa que os dados podem ser coletados e posteriormente enviados
       Serial.println("Modo de Cadastro Habilitado");      
       modoCadastroBiometria = true; //ativa o modo de cadastro no código principal
     }
-    if (payloadJson["ColetarDados"] == "false"){
+    if (payloadJson["ColetarDados"] == false){
       Serial.println("Modo de Cadastro Desabilitado");
       modoCadastroBiometria = false; //desativa o modo de cadastro no código principal
     }
