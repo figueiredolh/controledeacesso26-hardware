@@ -40,20 +40,36 @@ void CadastrarBiometria(){
     return;
   }
 
-  //uint8_t tentativasExtrairTemplate = 0;
+  /* uint8_t tentativasExtrairMaximas = 3;
+  uint8_t tentativasExtrair = 0;
+  sucesso = false; */
+
+  String templateBiometriaHex = ExtrairTemplateBiometria(idSensor);
+
   /* uint8_t templateBiometria[512];
 
-  while(!ExtrairTemplateBiometria(idSensor, templateBiometria)){
-    tentativasExtrairTemplate++;
+  while(!sucesso && tentativasExtrair < tentativasExtrairMaximas){
+    clientMQTT.loop();
+    sucesso = ExtrairTemplateBiometria(idSensor, templateBiometria);
 
-    if(tentativasExtrairTemplate < 3){
+    if(!sucesso && !modoCadastroBiometria){
+      Serial.println("Operação cancelada");
       setModoCadastroFalse();
       return;
     }
+
+    if(!sucesso){
+      tentativasLerDigitais++;
+      Serial.print("Falha na tentativa "); 
+      Serial.print(tentativasLerDigitais);
+      Serial.print("/"); Serial.print(tentativasLerDigitaisMaximas);
+      //delay(500);
+    } 
   } */
 
-  enviarDadosCadastroBiometriaMqtt(idSensor);
+  enviarDadosCadastroBiometriaMqtt(idSensor, templateBiometriaHex);
   setModoCadastroFalse();
+  
   return;
 }
 
@@ -254,7 +270,7 @@ bool lerDigitaisESalvar(uint16_t id){
   return true;
 }
 
-bool ExtrairTemplateBiometria(int id, uint8_t *templateBiometria){
+String ExtrairTemplateBiometria(int id){
   /* Serial.println("------------------------------------");
   Serial.print("Carregando dados do ID #"); Serial.println(id);
   uint8_t statusFingerprint = finger.loadModel(id);
@@ -295,6 +311,7 @@ bool ExtrairTemplateBiometria(int id, uint8_t *templateBiometria){
   Serial.print(i); Serial.println(" bytes read.");
   Serial.println("Decoding packet...");
 
+  uint8_t templateBiometria[512];
   memset(templateBiometria, 0xff, 512);
 
   // filtering only the data packets
@@ -306,14 +323,14 @@ bool ExtrairTemplateBiometria(int id, uint8_t *templateBiometria){
   index += 256;       // advance pointer
   memcpy(templateBiometria + index, bytesReceived + uindx, 256);   // second 256 bytes
 
-  for (int i = 0; i < 512; ++i) {
-    //Serial.print("0x");
+  /* for (int i = 0; i < 512; ++i) {
     printHex(templateBiometria[i], 2);
-    //Serial.print(", ");
   }
-  Serial.println("\nTemplate extraído");
+  Serial.println("\nTemplate extraído"); */
 
-  return true;
+  String hex = montarHex(templateBiometria);
+
+  return hex;
 }
 
 void setModoCadastroFalse(){
@@ -324,6 +341,20 @@ void limparBufferSensor(){
   while(mySerial.available()){
     mySerial.read();
   }
+}
+
+String montarHex(uint8_t *templateBiometria) {
+  String resultado = "";
+  // Dica de ouro para o ESP32: reserva o espaço antes para ser 10x mais rápido
+  resultado.reserve(1025); 
+
+  for (int i = 0; i < 512; i++) {
+    char tmp[3];
+    sprintf(tmp, "%02X", templateBiometria[i]);
+    resultado += tmp; // Vai "colando" um hex no outro
+  }
+  
+  return resultado; // Retorna a string gigante pronta
 }
 
 void printHex(int num, int precision) {

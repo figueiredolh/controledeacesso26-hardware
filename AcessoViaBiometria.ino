@@ -16,7 +16,7 @@ Adafruit_Fingerprint finger = Adafruit_Fingerprint(&mySerial);
 int ledVerde = 4;
 bool modoCadastroBiometria = false;
 
-MQTTClient clientMQTT(1024);
+MQTTClient clientMQTT(1280);
 WiFiClientSecure wifiClient;
 
 void connectMqtt() {

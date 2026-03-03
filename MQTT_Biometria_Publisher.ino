@@ -1,8 +1,7 @@
-//void enviarDadosCadastroBiometriaMqtt(uint8_t *templateDadosBiometria, int idSensor){
-void enviarDadosCadastroBiometriaMqtt(int idSensor){
+void enviarDadosCadastroBiometriaMqtt(int idSensor, String templateBiometriaHex){
   JsonDocument doc; 
   
-  //doc["UsuarioTemplate"] = templateDadosBiometria;
+  doc["UsuarioTemplate"] = templateBiometriaHex;
   doc["IdSensor"] = idSensor;
 
   String payloadJsonString;
