@@ -15,6 +15,7 @@ Adafruit_Fingerprint finger = Adafruit_Fingerprint(&mySerial);
 
 int ledVerde = 4;
 bool modoCadastroBiometria = false;
+bool modoExcluirBiometria = false;
 
 bool sensorOcupado = false;
 
@@ -30,6 +31,7 @@ void connectMqtt() {
       Serial.println("connected");
       // Subscribe
       clientMQTT.subscribe("controledeacesso26/biometria/cadastro/controle");
+      clientMQTT.subscribe("controledeacesso26/biometria/excluir/sensor1");
     } else {
       Serial.print("failed, rc=");
       Serial.print(clientMQTT.returnCode());
@@ -53,12 +55,30 @@ void callbackMessageReceived(String &topic, String &payload) {
   if (String(topic) == "controledeacesso26/biometria/cadastro/controle") {      
     if (payloadJson["ColetarDados"] == true){ //payload recebido informa que os dados podem ser coletados e posteriormente enviados
       Serial.println("Modo de Cadastro Habilitado");      
-      modoCadastroBiometria = true; //ativa o modo de cadastro no código principal
+      setModoCadastroTrue(); //ativa o modo de cadastro no código principal
     }
     if (payloadJson["ColetarDados"] == false){
       Serial.println("Modo de Cadastro Desabilitado");
-      modoCadastroBiometria = false; //desativa o modo de cadastro no código principal
+      setModoCadastroFalse(); //desativa o modo de cadastro no código principal
     }
+  }
+
+  if(String(topic) == "controledeacesso26/biometria/excluir/sensor1"){
+    uint8_t idSensorPayload = payloadJson["IdSensor"];
+    if (idSensorPayload > 0){
+      Serial.println("Modo de Exclusão Habilitada");
+      setModoExclusaoTrue(idSensorPayload);
+    }
+    else{
+      Serial.println("Modo de Exclusão Desabilitado");
+      setModoExclusaoFalse();
+    }
+  }
+}
+
+void limparBufferSensor(){
+  while(mySerial.available()){
+    mySerial.read();
   }
 }
 
@@ -96,6 +116,11 @@ void loop() {
     limparBufferSensor();
     //chamar função de cadastro de biometria adafruit
     CadastrarBiometria();
+  }
+  if(modoExcluirBiometria){
+    //chamar função de excluir biometria adafruit
+    limparBufferSensor();
+    ExcluirBiometria();
   }
   else{
     //chamar função de leitura de biometria adafruit

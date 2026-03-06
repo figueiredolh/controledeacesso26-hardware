@@ -1,12 +1,11 @@
 void CadastrarBiometria(){
-  //limparBufferSensor();
-
   int idSensor = buscarIdVazio();
 
   if(idSensor == -1){
-    Serial.print("Nenhum ID está vazio na memória do sensor");
+    Serial.print("Todos os slots da memória do sensor estão ocupados");
     //publicar mensagem mqtt
     setModoCadastroFalse();
+    enviarDadosCadastroBiometriaMqtt(0, "1");
     return;
   };
 
@@ -19,6 +18,7 @@ void CadastrarBiometria(){
 
     if(!sucesso && !modoCadastroBiometria){
       Serial.println("Operação cancelada");
+      //enviar mensagem mqtt aqui
       setModoCadastroFalse();
       return;
     }
@@ -35,37 +35,12 @@ void CadastrarBiometria(){
   if(!sucesso){
     Serial.println("Limite de tentativas atingido!");
     setModoCadastroFalse();
-    //limparBufferSensor();
-    // Envia erro para o C# aqui
+    // Envia erro para o .NET - linha em baixo
+    enviarDadosCadastroBiometriaMqtt(0, "2"); //código para limite de tentativa - temporário
     return;
   }
 
-  /* uint8_t tentativasExtrairMaximas = 3;
-  uint8_t tentativasExtrair = 0;
-  sucesso = false; */
-
   String templateBiometriaHex = ExtrairTemplateBiometria(idSensor);
-
-  /* uint8_t templateBiometria[512];
-
-  while(!sucesso && tentativasExtrair < tentativasExtrairMaximas){
-    clientMQTT.loop();
-    sucesso = ExtrairTemplateBiometria(idSensor, templateBiometria);
-
-    if(!sucesso && !modoCadastroBiometria){
-      Serial.println("Operação cancelada");
-      setModoCadastroFalse();
-      return;
-    }
-
-    if(!sucesso){
-      tentativasLerDigitais++;
-      Serial.print("Falha na tentativa "); 
-      Serial.print(tentativasLerDigitais);
-      Serial.print("/"); Serial.print(tentativasLerDigitaisMaximas);
-      //delay(500);
-    } 
-  } */
 
   enviarDadosCadastroBiometriaMqtt(idSensor, templateBiometriaHex);
   setModoCadastroFalse();
@@ -238,23 +213,49 @@ bool lerDigitaisESalvar(uint16_t id){
     return false;
   }
 
-  /* Serial.print("ID "); Serial.println(id);
+  Serial.print("ID "); Serial.println(id);
   statusFingerprint = finger.storeModel(id);
   if (statusFingerprint == FINGERPRINT_OK) {
     Serial.println("Stored!");
   } else if (statusFingerprint == FINGERPRINT_PACKETRECIEVEERR) {
     Serial.println("Communication error");
-    return statusFingerprint;
+    return false;
   } else if (statusFingerprint == FINGERPRINT_BADLOCATION) {
     Serial.println("Could not store in that location");
-    return statusFingerprint;
+    return false;
   } else if (statusFingerprint == FINGERPRINT_FLASHERR) {
     Serial.println("Error writing to flash");
-    return statusFingerprint;
+    return false;
   } else {
     Serial.println("Unknown error");
-    return statusFingerprint;
+    return false;
+  }
+
+  /* Serial.print("Attempting to get #"); Serial.println(id);
+  statusFingerprint = finger.getModel();
+  switch (statusFingerprint) {
+    case FINGERPRINT_OK:
+      Serial.print("Transferindo template do ID "); Serial.print(id); Serial.print("para o Serial");
+      break;
+    default:
+      Serial.print("Erro desconhecido "); Serial.println(statusFingerprint);
+      return false;
   } */
+
+  //Serial.println("------------------------------------");
+  Serial.print("Carregando dados do ID #"); Serial.println(id);
+  statusFingerprint = finger.loadModel(id);
+  switch (statusFingerprint) {
+    case FINGERPRINT_OK:
+      Serial.print("Template "); Serial.print(id); Serial.println(" loaded");
+      break;
+    case FINGERPRINT_PACKETRECIEVEERR:
+      Serial.println("Erro de comunicação");
+      return false;
+    default:
+      Serial.print("Erro desconhecido "); Serial.println(statusFingerprint);
+      return false;
+  }
 
   Serial.print("Attempting to get #"); Serial.println(id);
   statusFingerprint = finger.getModel();
@@ -271,32 +272,6 @@ bool lerDigitaisESalvar(uint16_t id){
 }
 
 String ExtrairTemplateBiometria(int id){
-  /* Serial.println("------------------------------------");
-  Serial.print("Carregando dados do ID #"); Serial.println(id);
-  uint8_t statusFingerprint = finger.loadModel(id);
-  switch (statusFingerprint) {
-    case FINGERPRINT_OK:
-      Serial.print("Template "); Serial.print(id); Serial.println(" loaded");
-      break;
-    case FINGERPRINT_PACKETRECIEVEERR:
-      Serial.println("Erro de comunicação");
-      return false;
-    default:
-      Serial.print("Erro desconhecido "); Serial.println(statusFingerprint);
-      return false;
-  } */
-
-  /* Serial.print("Attempting to get #"); Serial.println(id);
-  statusFingerprint = finger.getModel();
-  switch (statusFingerprint) {
-    case FINGERPRINT_OK:
-      Serial.print("Transferindo template do ID "); Serial.print(id); Serial.print("para o Serial");
-      break;
-    default:
-      Serial.print("Erro desconhecido "); Serial.println(statusFingerprint);
-      return false;
-  } */
-
   // one data packet is 267 bytes. in one data packet, 11 bytes are 'usesless' :D
   uint8_t bytesReceived[534]; // 2 data packets
   memset(bytesReceived, 0xff, 534);
@@ -333,16 +308,6 @@ String ExtrairTemplateBiometria(int id){
   return hex;
 }
 
-void setModoCadastroFalse(){
-  modoCadastroBiometria = false;
-}
-
-void limparBufferSensor(){
-  while(mySerial.available()){
-    mySerial.read();
-  }
-}
-
 String montarHex(uint8_t *templateBiometria) {
   String resultado = "";
   // Dica de ouro para o ESP32: reserva o espaço antes para ser 10x mais rápido
@@ -365,4 +330,20 @@ void printHex(int num, int precision) {
 
   sprintf(tmp, format, num);
   Serial.print(tmp);
+}
+
+void setModoCadastroTrue(){
+  if(sensorOcupado){
+    Serial.println("Sensor ocupado no momento");
+    Serial.println("Modo de cadastro desabilitado");
+    enviarDadosCadastroBiometriaMqtt(0, "0");
+    return;
+  }
+  modoCadastroBiometria = true;
+  sensorOcupado = true;
+}
+
+void setModoCadastroFalse(){
+  modoCadastroBiometria = false;
+  sensorOcupado = false;
 }
