@@ -1,40 +1,42 @@
-int idSensorExcluir;
-
-void ExcluirBiometria(){
-  bool idSensorGravado = idSensorGravadoNaMemoria(idSensorExcluir);
-
-  if(!idSensorGravado){
-    Serial.print("Nenhum dado foi gravado no ID informado");
-    setModoExclusaoFalse();
-    enviarDadosExclusaoBiometriaMqtt(false, 1); //1 - sensor com nenhum template gravado - slot vazio
-    return;
-  }
-
-  bool sucesso = excluirModeloIdBiometria(idSensorExcluir);
-
-  if(!sucesso){
-    setModoExclusaoFalse();
-    enviarDadosExclusaoBiometriaMqtt(false, 2); //2 - erro ao excluir modelo/template da memória flash do sensor
-    return;
-  }
-
-  enviarDadosExclusaoBiometriaMqtt(true);
-  setModoExclusaoFalse();
-  
-  return;
-}
-
-void setModoExclusaoTrue(int idSensor){
+void setModoExclusaoTrue(){
   if(sensorOcupado){
     Serial.print("Sensor ocupado no momento");
     Serial.println("Modo de exclusão desabilitado");
     //enviar ao mqtt status do sensor ocupado
-    enviarDadosExclusaoBiometriaMqtt(false, 0); //0 - sensor ocupado
+    enviarDadosExclusaoBiometriaMqtt(1); //Código de Erro 1 - sensor ocupado
     return;
   }
   modoExcluirBiometria = true;
   sensorOcupado = true;
-  idSensorExcluir = idSensor;
+}
+
+void ExcluirBiometria(){/* 
+  bool idSensorGravado = idSensorGravadoNaMemoria(idSensorExcluir);
+
+  if(!idSensorGravado){
+    Serial.print("Nenhum dado foi gravado no ID informado");
+    enviarDadosExclusaoBiometriaMqtt(2); //2 - sensor com nenhum template gravado - slot vazio
+    setModoExclusaoFalse();
+    return;
+  } */
+
+  bool sucesso = excluirModeloIdBiometria(idSensorExcluir);
+
+  if(!sucesso){
+    // Tenta uma segunda vez se a primeira falhar (Retry Logic)
+    delay(50);
+    sucesso = excluirModeloIdBiometria(idSensorExcluir);
+  }
+
+  if(sucesso){
+    enviarDadosExclusaoBiometriaMqtt(idSensorExcluir, 0); 
+  }
+  else{
+    enviarDadosExclusaoBiometriaMqtt(idSensorExcluir, 2); //2 - erro ao excluir modelo/template da memória flash do sensor
+  }
+
+  setModoExclusaoFalse();  
+  return;
 }
 
 void setModoExclusaoFalse(){
@@ -42,10 +44,10 @@ void setModoExclusaoFalse(){
   sensorOcupado = false;
 }
 
-bool idSensorGravadoNaMemoria(int idSensor){
+/* bool idSensorGravadoNaMemoria(int idSensor){
   uint8_t status;
 
-  delay(10);
+  delay(2);
   status = finger.loadModel(idSensor);
 
   if (status == FINGERPRINT_OK) {
@@ -54,15 +56,13 @@ bool idSensorGravadoNaMemoria(int idSensor){
   } 
   else if (status == FINGERPRINT_PACKETRECIEVEERR) {
     Serial.println("Erro de comunicação");
-    return false;
   } 
   else {
     Serial.print("Posição "); Serial.print(idSensor); Serial.print(" VAZIA");
-    return false;
   }
 
   return false; //retorna nenhum id vazio
-}
+} */
 
 bool excluirModeloIdBiometria(int idSensor){
   uint8_t status = -1;

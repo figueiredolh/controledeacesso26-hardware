@@ -1,4 +1,29 @@
-void enviarDadosCadastroBiometriaMqtt(int idSensor, String templateBiometriaHex){
+// Cadastrar Biometria
+void enviarDadosCadastroBiometriaMqtt(uint8_t idSensor, uint8_t codigoErro){
+  JsonDocument doc; 
+
+  doc["IdSensor"] = idSensor;
+  doc["CodigoErro"] = codigoErro;
+
+  String payloadJsonString;
+  serializeJson(doc, payloadJsonString);
+
+  clientMQTT.publish("controledeacesso26/biometria/cadastro/sensor1/enviar", payloadJsonString.c_str(), false, 1);
+}
+
+void enviarDadosCadastroBiometriaMqtt(uint8_t codigoErro){
+  JsonDocument doc; 
+  
+  doc["IdSensor"] = 0;
+  doc["CodigoErro"] = codigoErro;
+
+  String payloadJsonString;
+  serializeJson(doc, payloadJsonString);
+
+  clientMQTT.publish("controledeacesso26/biometria/cadastro/sensor1/enviar", payloadJsonString.c_str(), false, 1);
+}
+
+void enviarDadosCadastroBiometriaMqtt(uint8_t idSensor, String templateBiometriaHex){
   JsonDocument doc; 
   
   doc["UsuarioTemplate"] = templateBiometriaHex;
@@ -7,13 +32,16 @@ void enviarDadosCadastroBiometriaMqtt(int idSensor, String templateBiometriaHex)
   String payloadJsonString;
   serializeJson(doc, payloadJsonString);
 
-  clientMQTT.publish("controledeacesso26/biometria/cadastro/controle/enviar", payloadJsonString.c_str(), false, 1);
+  clientMQTT.publish("controledeacesso26/biometria/cadastro/sensor1/enviar", payloadJsonString.c_str(), false, 1);
 }
 
-void enviarDadosExclusaoBiometriaMqtt(bool excluido){
+// Excluir Biometria
+
+void enviarDadosExclusaoBiometriaMqtt(uint8_t idSensor, uint8_t codigoErro){ //sobrecarga
   JsonDocument doc; 
 
-  doc["Excluido"] = excluido;
+  doc["IdSensor"] = idSensor;
+  doc["CodigoErro"] = codigoErro;
 
   String payloadJsonString;
   serializeJson(doc, payloadJsonString);
@@ -21,12 +49,11 @@ void enviarDadosExclusaoBiometriaMqtt(bool excluido){
   clientMQTT.publish("controledeacesso26/biometria/excluir/sensor1/enviar", payloadJsonString.c_str(), false, 1);
 }
 
-//sobrecarga
-void enviarDadosExclusaoBiometriaMqtt(bool excluido, uint8_t codigoErro){
-  JsonDocument doc; 
-
-  doc["Excluido"] = excluido;
-  doc["Codigo"] = codigoErro;
+void enviarDadosExclusaoBiometriaMqtt(uint8_t codigoErro){ //sobrecarga
+  JsonDocument doc;   
+  
+  doc["IdSensor"] = 0;
+  doc["CodigoErro"] = codigoErro;
 
   String payloadJsonString;
   serializeJson(doc, payloadJsonString);

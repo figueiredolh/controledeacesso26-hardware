@@ -11,11 +11,17 @@
 #define RXD2 16
 #define TXD2 17
 
+#define pinoTouch 23
+
 Adafruit_Fingerprint finger = Adafruit_Fingerprint(&mySerial);
 
 int ledVerde = 4;
+
 bool modoCadastroBiometria = false;
+volatile bool processarSalvarTemplate = false;
+
 bool modoExcluirBiometria = false;
+volatile int idSensorExcluir;
 
 bool sensorOcupado = false;
 
@@ -30,7 +36,7 @@ void connectMqtt() {
     if (clientMQTT.connect("ESP32Client", mqtt_server_username, mqtt_server_password)) {
       Serial.println("connected");
       // Subscribe
-      clientMQTT.subscribe("controledeacesso26/biometria/cadastro/controle");
+      clientMQTT.subscribe("controledeacesso26/biometria/cadastro/sensor1");
       clientMQTT.subscribe("controledeacesso26/biometria/excluir/sensor1");
     } else {
       Serial.print("failed, rc=");
@@ -43,7 +49,7 @@ void connectMqtt() {
 }
 
 void callbackMessageReceived(String &topic, String &payload) {
-  Serial.println("Messagem no tópico: ");
+  Serial.println("Mensagem no tópico: ");
   Serial.print(topic);
   Serial.print(". Mensagem: ");
   Serial.print(payload);
@@ -52,22 +58,28 @@ void callbackMessageReceived(String &topic, String &payload) {
   deserializeJson(payloadJson, payload);
 
   //solicitação de cadastro de biometria
-  if (String(topic) == "controledeacesso26/biometria/cadastro/controle") {      
+  if (String(topic) == "controledeacesso26/biometria/cadastro/sensor1") {      
     if (payloadJson["ColetarDados"] == true){ //payload recebido informa que os dados podem ser coletados e posteriormente enviados
-      Serial.println("Modo de Cadastro Habilitado");      
-      setModoCadastroTrue(); //ativa o modo de cadastro no código principal
+      if(payloadJson["CadastroEtapa"] == 0){
+        Serial.println("Modo de Cadastro Habilitado");      
+        setModoCadastroTrue(); //ativa o modo de cadastro no código principal
+      }
+      if(payloadJson["CadastroEtapa"] == 1){
+        processarSalvarTemplate = true;
+      }      
     }
     if (payloadJson["ColetarDados"] == false){
-      Serial.println("Modo de Cadastro Desabilitado");
+      Serial.println("Modo de Cadastro Desabilitado");      
       setModoCadastroFalse(); //desativa o modo de cadastro no código principal
     }
   }
 
   if(String(topic) == "controledeacesso26/biometria/excluir/sensor1"){
-    uint8_t idSensorPayload = payloadJson["IdSensor"];
-    if (idSensorPayload > 0){
+    //int idSensorPayload = payloadJson["IdSensor"];
+    if (payloadJson["IdSensor"] > 0){
       Serial.println("Modo de Exclusão Habilitada");
-      setModoExclusaoTrue(idSensorPayload);
+      idSensorExcluir = payloadJson["IdSensor"];
+      setModoExclusaoTrue();
     }
     else{
       Serial.println("Modo de Exclusão Desabilitado");
@@ -96,6 +108,8 @@ void setup() {
     Serial.println("Sensor biométrico não encontrado");
     while (1) { delay(1); }
   }
+  
+  finger.LEDcontrol(false);
 
   conectarWifi();
   wifiClient.setInsecure();
@@ -103,6 +117,7 @@ void setup() {
   clientMQTT.onMessage(callbackMessageReceived);
   
   pinMode(ledVerde, OUTPUT);
+  pinMode(pinoTouch, INPUT);
 }
 
 void loop() {
