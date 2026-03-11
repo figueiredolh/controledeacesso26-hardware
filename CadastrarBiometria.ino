@@ -15,7 +15,6 @@ void CadastrarBiometria(){
 
   if(idSensor == -1){
     Serial.print("Todos os slots da memória do sensor estão ocupados");
-    //publicar mensagem mqtt
     setModoCadastroFalse();
     enviarDadosCadastroBiometriaMqtt(2);
     return;
@@ -26,7 +25,7 @@ void CadastrarBiometria(){
   bool sucesso = false;   
 
   while(!sucesso && tentativasLerDigitais < tentativasLerDigitaisMaximas && modoCadastroBiometria){
-    sucesso = lerDigitaisESalvar(idSensor);
+    sucesso = lerDigitais(idSensor);
 
     if(!sucesso && !modoCadastroBiometria){
       Serial.println("Operação cancelada");
@@ -40,6 +39,7 @@ void CadastrarBiometria(){
       Serial.print("Falha na tentativa "); 
       Serial.print(tentativasLerDigitais);
       Serial.print("/"); Serial.print(tentativasLerDigitaisMaximas);
+      enviarDadosCadastroBiometriaMqttFeedback(9);
       //delay(500);
     } 
   }  
@@ -83,6 +83,7 @@ void CadastrarBiometria(){
 
   if(sucesso){
     enviarDadosCadastroBiometriaMqtt(idSensor, 0);
+    enviarDadosCadastroBiometriaMqttFeedback(10);
   } 
   else {
     enviarDadosCadastroBiometriaMqtt(idSensor, 5); //erro na gravação do template
@@ -115,10 +116,11 @@ int buscarIdVazio(){
   return -1; //retorna nenhum id vazio
 }
 
-bool lerDigitaisESalvar(uint16_t id){
+bool lerDigitais(uint16_t id){
   int statusFingerprint = -1;
   
   Serial.print("Aguardando leitura de biometria do usuário no ID: "); Serial.println(id);
+  enviarDadosCadastroBiometriaMqttFeedback(1);
 
   while (statusFingerprint != FINGERPRINT_OK) {
     clientMQTT.loop();
@@ -132,6 +134,7 @@ bool lerDigitaisESalvar(uint16_t id){
     switch (statusFingerprint) {
     case FINGERPRINT_OK:
       Serial.println("Imagem capturada");
+      enviarDadosCadastroBiometriaMqttFeedback(2);
       break;
     case FINGERPRINT_NOFINGER:
       Serial.print(".");
@@ -154,6 +157,7 @@ bool lerDigitaisESalvar(uint16_t id){
   switch (statusFingerprint) {
     case FINGERPRINT_OK:
       Serial.println("Imagem convertida");
+      enviarDadosCadastroBiometriaMqttFeedback(3);
       break;
     case FINGERPRINT_IMAGEMESS:
       Serial.println("Image too messy");
@@ -173,6 +177,7 @@ bool lerDigitaisESalvar(uint16_t id){
   }
 
   Serial.println("Retire o dedo do leitor");
+  enviarDadosCadastroBiometriaMqttFeedback(4);
   delay(2000);
   statusFingerprint = 0;
   while (statusFingerprint != FINGERPRINT_NOFINGER) {
@@ -188,6 +193,7 @@ bool lerDigitaisESalvar(uint16_t id){
   Serial.print("ID: "); Serial.println(id);
   statusFingerprint = -1;
   Serial.println("Coloque o dedo novamente no leitor");
+  enviarDadosCadastroBiometriaMqttFeedback(5);
   while (statusFingerprint != FINGERPRINT_OK) {
     clientMQTT.loop();
 
@@ -200,6 +206,7 @@ bool lerDigitaisESalvar(uint16_t id){
     switch (statusFingerprint) {
       case FINGERPRINT_OK:
         Serial.println("Imagem capturada");
+        enviarDadosCadastroBiometriaMqttFeedback(6);
         break;
       case FINGERPRINT_NOFINGER:
         Serial.print(".");
@@ -222,6 +229,7 @@ bool lerDigitaisESalvar(uint16_t id){
   switch (statusFingerprint) {
     case FINGERPRINT_OK:
       Serial.println("Imagem convertida");
+      enviarDadosCadastroBiometriaMqttFeedback(7);
       break;
     case FINGERPRINT_IMAGEMESS:
       Serial.println("Image too messy");
@@ -246,6 +254,7 @@ bool lerDigitaisESalvar(uint16_t id){
   statusFingerprint = finger.createModel();
   if (statusFingerprint == FINGERPRINT_OK) {
     Serial.println("Digitais coincidem");
+    enviarDadosCadastroBiometriaMqttFeedback(8);
   } else if (statusFingerprint == FINGERPRINT_PACKETRECIEVEERR) {
     Serial.println("Communication error");
     return false;
