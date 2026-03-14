@@ -11,7 +11,7 @@
 #define RXD2 16
 #define TXD2 17
 
-#define pinoTouch 23
+//#define pinoTouch 23
 
 Adafruit_Fingerprint finger = Adafruit_Fingerprint(&mySerial);
 
@@ -108,8 +108,6 @@ void setup() {
     Serial.println("Sensor biométrico não encontrado");
     while (1) { delay(1); }
   }
-  
-  finger.LEDcontrol(false);
 
   conectarWifi();
   wifiClient.setInsecure();
@@ -117,7 +115,7 @@ void setup() {
   clientMQTT.onMessage(callbackMessageReceived);
   
   pinMode(ledVerde, OUTPUT);
-  pinMode(pinoTouch, INPUT);
+  finger.LEDcontrol(false);
 }
 
 void loop() {
@@ -140,5 +138,12 @@ void loop() {
   else{
     //chamar função de leitura de biometria adafruit
     limparBufferSensor();
+    verificarBiometria();
+
+    /* int estadoTouch = digitalRead(pinoTouch);
+    Serial.println(estadoTouch);
+    if(estadoTouch == LOW){
+      verificarBiometria();
+    } */   
   }
 }
