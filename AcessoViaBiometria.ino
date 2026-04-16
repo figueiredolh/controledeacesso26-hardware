@@ -15,7 +15,9 @@
 
 Adafruit_Fingerprint finger = Adafruit_Fingerprint(&mySerial);
 
-int ledVerde = 4;
+//int ledVerde = 4;
+int gpioStatusPorta = 26;
+volatile bool portaAberta = false;
 
 bool modoCadastroBiometria = false;
 volatile bool processarSalvarTemplate = false;
@@ -24,6 +26,7 @@ bool modoExcluirBiometria = false;
 volatile int idSensorExcluir;
 
 bool sensorOcupado = false;
+volatile bool portaFechada = false;
 
 MQTTClient clientMQTT(1280);
 WiFiClientSecure wifiClient;
@@ -38,6 +41,7 @@ void connectMqtt() {
       // Subscribe
       clientMQTT.subscribe("controledeacesso26/biometria/cadastro/sensor1");
       clientMQTT.subscribe("controledeacesso26/biometria/excluir/sensor1");
+      clientMQTT.subscribe("controledeacesso26/biometria/porta/abrir");      
     } else {
       Serial.print("failed, rc=");
       Serial.print(clientMQTT.returnCode());
@@ -86,6 +90,16 @@ void callbackMessageReceived(String &topic, String &payload) {
       setModoExclusaoFalse();
     }
   }
+
+  if(String(topic) == "controledeacesso26/biometria/porta/abrir"){
+    if(portaFechada == false){
+      Serial.println("Fazer a lógica de abrir porta");
+      delay(2000);
+    }
+    else{
+      Serial.println("Porta fechada");
+    }
+  }
 }
 
 void limparBufferSensor(){
@@ -114,7 +128,8 @@ void setup() {
   clientMQTT.begin(mqtt_server, mqtt_server_port, wifiClient); 
   clientMQTT.onMessage(callbackMessageReceived);
   
-  pinMode(ledVerde, OUTPUT);
+  //pinMode(ledVerde, OUTPUT);
+  pinMode(gpioStatusPorta, INPUT_PULLUP);
   finger.LEDcontrol(false);
 }
 
@@ -123,6 +138,15 @@ void loop() {
 
   if (!clientMQTT.connected()) {
     connectMqtt();
+  }
+
+  if(digitalRead(gpioStatusPorta) == HIGH){
+    portaAberta = true;
+    Serial.println("Porta Aberta");
+  }
+  else{
+    portaAberta = false;
+    Serial.println("Porta Fechada");
   }
 
   if(modoCadastroBiometria){

@@ -1,4 +1,9 @@
 void verificarBiometria(){
+  if(portaAberta){
+    finger.LEDcontrol(false);
+    return;
+  }
+
   verificarEstadoSensor();
   bool sucessoLerDigital = lerDigital();
 
@@ -10,6 +15,7 @@ void verificarBiometria(){
       uint16_t idDigital = lerIdDigital();
       Serial.println(idDigital);
       //enviar idDigital via mqtt
+      verificarBiometriaMqtt(idDigital);
     }
 
     Serial.println("Retire o dedo do leitor");

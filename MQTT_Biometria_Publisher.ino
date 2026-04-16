@@ -64,3 +64,16 @@ void enviarDadosExclusaoBiometriaMqtt(uint8_t codigoErro){ //sobrecarga
 
   clientMQTT.publish("controledeacesso26/biometria/excluir/sensor1/enviar", payloadJsonString.c_str(), false, 1);
 }
+
+// Verificar Biometria
+void verificarBiometriaMqtt(uint16_t idSensor){ //sobrecarga
+  JsonDocument doc;   
+  
+  doc["IdSensor"] = idSensor;
+  doc["Sensor"] = 1;
+
+  String payloadJsonString;
+  serializeJson(doc, payloadJsonString);
+
+  clientMQTT.publish("controledeacesso26/biometria/verificar/sensor1", payloadJsonString.c_str(), false, 1);
+}
