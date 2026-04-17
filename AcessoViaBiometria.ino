@@ -144,20 +144,16 @@ void loop() {
 
   if(digitalRead(gpioStatusPorta) == HIGH){
     portaAberta = true;
-    Serial.println("Porta Aberta");
   }
   if(digitalRead(gpioStatusPorta) == LOW){
     portaAberta = false;
-    Serial.println("Porta Fechada");
   }
 
   if(digitalRead(pinTouch) == HIGH){
     dedoNoSensor = true;
-    Serial.println("Dedo no sensor");
   }
   if(digitalRead(pinTouch) == LOW){
     dedoNoSensor = false;
-    Serial.println("Sem dedo no sensor");
   }
 
   if(modoCadastroBiometria){
