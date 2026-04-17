@@ -15,7 +15,9 @@
 
 Adafruit_Fingerprint finger = Adafruit_Fingerprint(&mySerial);
 
-//int ledVerde = 4;
+int pinTouch = 19;
+volatile bool dedoNoSensor = false;
+
 int gpioStatusPorta = 26;
 volatile bool portaAberta = false;
 
@@ -127,9 +129,9 @@ void setup() {
   wifiClient.setInsecure();
   clientMQTT.begin(mqtt_server, mqtt_server_port, wifiClient); 
   clientMQTT.onMessage(callbackMessageReceived);
-  
-  //pinMode(ledVerde, OUTPUT);
+
   pinMode(gpioStatusPorta, INPUT_PULLUP);
+  pinMode(pinTouch, INPUT);
   finger.LEDcontrol(false);
 }
 
@@ -144,9 +146,18 @@ void loop() {
     portaAberta = true;
     Serial.println("Porta Aberta");
   }
-  else{
+  if(digitalRead(gpioStatusPorta) == LOW){
     portaAberta = false;
     Serial.println("Porta Fechada");
+  }
+
+  if(digitalRead(pinTouch) == HIGH){
+    dedoNoSensor = true;
+    Serial.println("Dedo no sensor");
+  }
+  if(digitalRead(pinTouch) == LOW){
+    dedoNoSensor = false;
+    Serial.println("Sem dedo no sensor");
   }
 
   if(modoCadastroBiometria){

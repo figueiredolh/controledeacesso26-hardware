@@ -1,4 +1,8 @@
 void verificarBiometria(){
+  if(!dedoNoSensor){
+    return;
+  }
+  
   if(portaAberta){
     finger.LEDcontrol(false);
     return;
@@ -42,7 +46,7 @@ void verificarEstadoSensor(){
 
 void finalizarVerificacao(){
   sensorOcupado = false;
-  //finger.LEDcontrol(false);
+  finger.LEDcontrol(false);
   delay(1000);
 }
 
