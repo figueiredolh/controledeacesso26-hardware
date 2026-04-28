@@ -89,6 +89,10 @@ void CadastrarBiometria(){
     enviarDadosCadastroBiometriaMqtt(idSensor, 5); //erro na gravação do template
   }
 
+  while(statusFingerprint != FINGERPRINT_NOFINGER){
+    statusFingerprint = finger.getImage();
+  }
+
   setModoCadastroFalse();   
   return;
 }
