@@ -11,8 +11,6 @@
 #define RXD2 16
 #define TXD2 17
 
-//#define pinoTouch 23
-
 Adafruit_Fingerprint finger = Adafruit_Fingerprint(&mySerial);
 
 int pinTouch = 19;
@@ -20,6 +18,8 @@ volatile bool dedoNoSensor = false;
 
 int gpioStatusPorta = 26;
 volatile bool portaAberta = false;
+
+int pinReleAbrirPorta = 23;
 
 bool modoCadastroBiometria = false;
 volatile bool processarSalvarTemplate = false;
@@ -93,7 +93,9 @@ void callbackMessageReceived(String &topic, String &payload) {
 
   if (String(topic) == "controledeacesso26/biometria/porta/abrir") {
     if (!portaAberta) {
-      Serial.println("Fazer a lógica de abrir porta");
+      digitalWrite(pinReleAbrirPorta, HIGH);
+      delay(2000);
+      digitalWrite(pinReleAbrirPorta, LOW);
       delay(2000);
     } else {
       Serial.println("Porta fechada");
@@ -129,6 +131,8 @@ void setup() {
 
   pinMode(gpioStatusPorta, INPUT_PULLUP);
   pinMode(pinTouch, INPUT);
+  pinMode(pinReleAbrirPorta, OUTPUT);
+  digitalWrite(pinReleAbrirPorta, LOW);
   finger.LEDcontrol(false);
 }
 
@@ -166,11 +170,5 @@ void loop() {
     //chamar função de leitura de biometria adafruit
     limparBufferSensor();
     verificarBiometria();
-
-    /* int estadoTouch = digitalRead(pinoTouch);
-    Serial.println(estadoTouch);
-    if(estadoTouch == LOW){
-      verificarBiometria();
-    } */
   }
 }
