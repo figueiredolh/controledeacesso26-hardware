@@ -89,6 +89,8 @@ void CadastrarBiometria(){
     enviarDadosCadastroBiometriaMqtt(idSensor, 5); //erro na gravação do template
   }
 
+  Serial.println("Retire o dedo do leitor");
+  int statusFingerprint = 0;
   while(statusFingerprint != FINGERPRINT_NOFINGER){
     statusFingerprint = finger.getImage();
   }
