@@ -43,6 +43,7 @@ void connectMqtt() {
       clientMQTT.subscribe("controledeacesso26/biometria/cadastro/sensor1");
       clientMQTT.subscribe("controledeacesso26/biometria/excluir/sensor1");
       clientMQTT.subscribe("controledeacesso26/biometria/porta/abrir");
+      clientMQTT.subscribe("controledeacesso26/biometria/excluirdb/sensor1");
     } else {
       Serial.print("failed, rc=");
       Serial.print(clientMQTT.returnCode());
@@ -101,6 +102,20 @@ void callbackMessageReceived(String &topic, String &payload) {
       Serial.println("Porta fechada");
     }
   }
+
+  if(String(topic) == "controledeacesso26/biometria/excluirdb/sensor1"){
+    if(payloadJson["IdSensor"] == 1){
+      finger.getTemplateCount();
+      Serial.println("Antes: ");
+      Serial.print(finger.templateCount);
+
+      finger.emptyDatabase();
+
+      finger.getTemplateCount();
+      Serial.println("Depois: ");
+      Serial.print(finger.templateCount);
+    }
+  }
 }
 
 void limparBufferSensor() {
@@ -134,6 +149,9 @@ void setup() {
   pinMode(pinReleAbrirPorta, OUTPUT);
   digitalWrite(pinReleAbrirPorta, LOW);
   finger.LEDcontrol(false);
+
+  finger.getTemplateCount();
+  Serial.println("Numero de templates do sensor: "); Serial.print(finger.templateCount);
 }
 
 void loop() {
